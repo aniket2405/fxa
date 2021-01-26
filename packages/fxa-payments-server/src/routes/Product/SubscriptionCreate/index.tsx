@@ -88,7 +88,7 @@ export const SubscriptionCreate = ({
       return;
     }
     const script = document.createElement('script');
-    script.src = `${config.paypal.scriptUrl}/sdk/js?client-id=${config.paypal.clientId}&vault=true&commit=false&intent=authorize&disable-funding=credit,card`;
+    script.src = `${config.paypal.scriptUrl}/sdk/js?client-id=${config.paypal.clientId}&vault=true&commit=false&intent=capture&disable-funding=credit,card`;
     script.onload = () => {
       setPaypalScriptLoaded(true);
     };
@@ -154,6 +154,16 @@ export const SubscriptionCreate = ({
     ]
   );
 
+  const onCreateOrder = useCallback(async () => {
+    if (!customer) {
+      await apiClient.apiCreateCustomer({
+        idempotencyKey: submitNonce,
+      });
+    }
+    const { token } = await apiClient.apiGetPaypalCheckoutToken();
+    return token;
+  }, [customer, apiClient.apiCreateCustomer, submitNonce]);
+
   return (
     <>
       <Header {...{ profile }} />
@@ -173,7 +183,7 @@ export const SubscriptionCreate = ({
 
           {!hasExistingCard(customer) && paypalScriptLoaded && (
             <Suspense fallback={<div>Loading...</div>}>
-              <PaypalButton />
+              <PaypalButton onCreateOrder={onCreateOrder} />
             </Suspense>
           )}
 
